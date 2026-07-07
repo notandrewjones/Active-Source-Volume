@@ -6,27 +6,29 @@ SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <obs-frontend-api.h>
 
-class ActiveBrowserController;
+class ActiveBrowser;
+class PluginConfig;
 
 /*
- * SceneTracker watches the OBS program scene and, on every change, finds the
- * active browser source in it and hands it to the ActiveBrowserController.
+ * SceneTracker decides WHICH single browser source is controlled and hands it
+ * to ActiveBrowser:
  *
- * "Active browser source" = the top-most VISIBLE source of type
- * "browser_source" among the program scene's items (descending into groups but
- * NOT into nested scenes). Everything else - mics, media, nested scenes, images
- * - is ignored by design.
+ *   1. If the user set an override (a specific browser source name), that one is
+ *      always controlled, regardless of scene.
+ *   2. Otherwise, the top-most VISIBLE browser source in the live program scene
+ *      (groups are searched; nested scenes are not).
  *
- * Resolution runs at transition START (OBS_FRONTEND_EVENT_SCENE_CHANGED), which
- * is what keeps audio artifact-free through transitions (see active-browser.hpp).
+ * It re-resolves on scene changes so, in auto mode, control follows whatever
+ * browser is on screen. Selecting a source never changes any volume.
  */
 class SceneTracker {
 public:
-	explicit SceneTracker(ActiveBrowserController &ctl);
+	SceneTracker(ActiveBrowser &ctl, PluginConfig &cfg);
 
 	void handle_event(enum obs_frontend_event event);
 	void resolve_current();
 
 private:
-	ActiveBrowserController &ctl_;
+	ActiveBrowser &ctl_;
+	PluginConfig &cfg_;
 };

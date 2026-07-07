@@ -38,7 +38,7 @@
     },
     "name": "active-source-volume",
     "displayName": "Active Source Volume",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "author": "Andrew Jones",
     "website": "https://example.com/active-source-volume",
     "email": "you@example.com"

@@ -5,18 +5,15 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 
 #include <mutex>
+#include <string>
 
 /*
- * PluginConfig persists two settings to
- *   <obs config>/plugins/active-source-volume/config.json
- *
- *   nudge_step_db : how many dB one hotkey press moves the active browser
- *                   (default 5.0).
- *   carry_level   : whether the controlled level carries across scene changes
- *                   (default true). See active-browser.hpp.
- *
- * No per-scene mapping is needed any more: the active browser source is
- * detected automatically from the live scene.
+ * PluginConfig persists:
+ *   nudge_step_db   : dB shift per hotkey press (default 5.0).
+ *   override_source : name of a specific browser source to always control;
+ *                     empty means auto (top-most browser in the live scene).
+ *   dca_mode        : when true, hotkeys act on ALL browser sources at once.
+ * Stored at <obs config>/plugins/active-source-volume/config.json
  */
 class PluginConfig {
 public:
@@ -26,11 +23,15 @@ public:
 	float nudge_step_db() const;
 	void set_nudge_step_db(float step);
 
-	bool carry_level() const;
-	void set_carry_level(bool carry);
+	std::string override_source() const;
+	void set_override_source(const std::string &name);
+
+	bool dca_mode() const;
+	void set_dca_mode(bool enabled);
 
 private:
 	mutable std::mutex mutex_;
 	float nudge_step_db_ = 5.0f;
-	bool carry_level_ = true;
+	std::string override_source_;
+	bool dca_mode_ = false;
 };

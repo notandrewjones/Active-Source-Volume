@@ -8,40 +8,45 @@ SPDX-License-Identifier: GPL-2.0-or-later
 
 class PluginConfig;
 class SceneTracker;
-class ActiveBrowserController;
+class ActiveBrowser;
 class QLabel;
+class QComboBox;
 class QCheckBox;
 class QDoubleSpinBox;
 class QTimer;
 
 /*
- * StatusDock is a small diagnostics + settings panel. It exists mainly so you
- * can VERIFY behaviour at a glance: it shows the browser source currently being
- * controlled and its live level, updating as scenes change and as you nudge.
- *
- * It also exposes the two settings: the dB step and the carry-level toggle.
- * There is no per-scene mapping UI - the active browser is detected
- * automatically.
+ * StatusDock shows what's being controlled and its live level, and exposes the
+ * settings: the dB step, the controlled-source picker (Auto or a pinned
+ * override), and the optional DCA-mode toggle (control every browser source at
+ * once). It reads state directly from ActiveBrowser / browser_dca.
  */
 class StatusDock : public QWidget {
 	Q_OBJECT
 
 public:
-	StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowserController &ctl, QWidget *parent = nullptr);
+	StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &ctl, QWidget *parent = nullptr);
 
 private slots:
 	void refresh();
-	void onCarryToggled(bool checked);
 	void onStepChanged(double value);
+	void onOverrideChanged(const QString &text);
+	void onDcaToggled(bool checked);
 
 private:
+	void repopulateOverride();
+	void updateEnabledState();
+
 	PluginConfig &cfg_;
 	SceneTracker &tracker_;
-	ActiveBrowserController &ctl_;
+	ActiveBrowser &ctl_;
 
-	QLabel *sourceLabel_ = nullptr;
-	QLabel *levelLabel_ = nullptr;
-	QCheckBox *carryCheck_ = nullptr;
+	QLabel *headerLabel_ = nullptr;
+	QLabel *bodyLabel_ = nullptr;
+	QCheckBox *dcaCheck_ = nullptr;
+	QComboBox *overrideCombo_ = nullptr;
+	QLabel *overrideLabel_ = nullptr;
 	QDoubleSpinBox *stepSpin_ = nullptr;
 	QTimer *timer_ = nullptr;
+	bool populating_ = false;
 };

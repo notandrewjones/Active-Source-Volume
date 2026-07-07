@@ -85,6 +85,8 @@ target_sources(
     src/config.hpp
     src/active-browser.cpp
     src/active-browser.hpp
+    src/browser-dca.cpp
+    src/browser-dca.hpp
     src/scene-tracker.cpp
     src/scene-tracker.hpp
     src/status-dock.cpp

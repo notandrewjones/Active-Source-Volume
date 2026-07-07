@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #include <obs.h>
 
 #define PLUGIN_NAME "active-source-volume"
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.2.0"
 #define DOCK_ID "active-source-volume-dock"
 #define VENDOR_NAME "active-source-volume"
 

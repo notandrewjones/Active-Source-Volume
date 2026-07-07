@@ -38,13 +38,17 @@ void PluginConfig::load()
 	}
 
 	obs_data_set_default_double(data, "nudge_step_db", 5.0);
-	obs_data_set_default_bool(data, "carry_level", true);
-
 	nudge_step_db_ = (float)obs_data_get_double(data, "nudge_step_db");
-	carry_level_ = obs_data_get_bool(data, "carry_level");
+
+	const char *ov = obs_data_get_string(data, "override_source");
+	override_source_ = ov ? ov : "";
+
+	obs_data_set_default_bool(data, "dca_mode", false);
+	dca_mode_ = obs_data_get_bool(data, "dca_mode");
 
 	obs_data_release(data);
-	plog(LOG_INFO, "Loaded config: step=%.1f dB, carry_level=%s", nudge_step_db_, carry_level_ ? "true" : "false");
+	plog(LOG_INFO, "Loaded config: step=%.1f dB, override=%s, dca=%s", nudge_step_db_,
+	     override_source_.empty() ? "(auto)" : override_source_.c_str(), dca_mode_ ? "on" : "off");
 }
 
 void PluginConfig::save() const
@@ -53,7 +57,8 @@ void PluginConfig::save() const
 
 	obs_data_t *data = obs_data_create();
 	obs_data_set_double(data, "nudge_step_db", nudge_step_db_);
-	obs_data_set_bool(data, "carry_level", carry_level_);
+	obs_data_set_string(data, "override_source", override_source_.c_str());
+	obs_data_set_bool(data, "dca_mode", dca_mode_);
 
 	std::string path = config_file_path();
 	if (!obs_data_save_json_safe(data, path.c_str(), "tmp", "bak"))
@@ -74,14 +79,26 @@ void PluginConfig::set_nudge_step_db(float step)
 	nudge_step_db_ = step;
 }
 
-bool PluginConfig::carry_level() const
+std::string PluginConfig::override_source() const
 {
 	std::lock_guard<std::mutex> lock(mutex_);
-	return carry_level_;
+	return override_source_;
 }
 
-void PluginConfig::set_carry_level(bool carry)
+void PluginConfig::set_override_source(const std::string &name)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
-	carry_level_ = carry;
+	override_source_ = name;
+}
+
+bool PluginConfig::dca_mode() const
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	return dca_mode_;
+}
+
+void PluginConfig::set_dca_mode(bool enabled)
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	dca_mode_ = enabled;
 }

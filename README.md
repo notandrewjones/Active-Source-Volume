@@ -1,232 +1,111 @@
 # Active Source Volume
 
-An OBS Studio plugin that gives you **one Stream Deck button (or dial) that
-controls the volume of the browser source on the scene currently live on
-program output** — and follows it automatically as scenes change.
+An OBS Studio plugin that gives you **hotkeys to raise, lower, and mute a browser
+source's volume** — designed for a Stream Deck. It changes one browser source at
+a time (the one on your live scene, or one you pin), so your alert, donation, and
+chat browsers are left untouched. There's also an optional **DCA mode** to trim
+every browser source together.
 
-Only **browser sources** are considered. Mics, media, images, nested scenes and
-everything else in a scene are ignored by design.
+The volume changes are **relative**: pressing **+** adds a few dB to whatever the
+source is currently at, so each source keeps its own level.
 
-Built on the official [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate)
-(OBS 31.1.1), so building is one preset command per platform and produces a
-properly bundled, ad-hoc-signed plugin.
+## Features
 
----
+- Raise / lower / mute a browser source from a hotkey or Stream Deck button.
+- Automatically follows the top-most browser source on your **live scene**.
+- Or **pin a specific browser source** so it's always the one controlled.
+- **DCA mode** (optional): one press trims *all* browser sources at once, each
+  keeping its relative balance.
+- A dock that shows which source is being controlled and its live level.
+- Adjustable step size (default ±5 dB).
+- Works over **obs-websocket** too, for control surfaces like Bitfocus Companion.
 
-## Get a pre-built plugin with no local toolchain (GitHub Actions)
+## Requirements
 
-If you don't want to install Xcode at all, let GitHub build the `.plugin` for you
-and just download it. The CI in `.github/workflows/` builds macOS (Universal),
-Windows, and Linux and uploads the results as run artifacts. No Apple Developer
-account or secrets are needed — builds fall back to ad-hoc signing automatically.
+- **OBS Studio 31.0 or newer** (macOS, Windows, or Linux).
 
-1. Create a **new, public** GitHub repo (public = free macOS runner minutes).
-2. Push this project to it:
-   ```bash
-   cd active-source-volume
-   git init && git add . && git commit -m "Active Source Volume plugin"
-   git branch -M main
-   git remote add origin https://github.com/<you>/active-source-volume.git
-   git push -u origin main
-   ```
-3. On GitHub → **Actions** tab → if prompted, enable workflows. Then open the
-   **Dispatch** workflow → **Run workflow** → job **build** → Run.
-   (This path produces the raw `.plugin` for drag-and-drop. A plain push to
-   `main` instead produces a `.pkg` installer.)
-4. When the run finishes (~10–15 min), open it and download the artifact
-   **`active-source-volume-1.0.0-macos-universal-<hash>`** (a `.zip`).
-5. Unzip it → inside is `active-source-volume-1.0.0-macos-universal.tar.xz` →
-   extract that → you get **`active-source-volume.plugin`**.
-6. Drag `active-source-volume.plugin` into
-   `~/Library/Application Support/obs-studio/plugins/`, then clear quarantine and
-   restart OBS:
-   ```bash
-   xattr -dr com.apple.quarantine \
-     ~/Library/Application\ Support/obs-studio/plugins/active-source-volume.plugin
-   ```
+## Install
 
-> This CI run is the first *real* compile of the Qt UI code. If the macOS job
-> fails, open its log — the error is almost always a one- or two-line fix. The
-> `-ci` presets have warnings-as-errors disabled here so a cosmetic warning
-> won't block your artifact.
+Download the latest release for your platform from the
+[**Releases**](../../releases) page.
 
----
+- **macOS** — open the `.pkg` and follow the installer. It's not signed with an
+  Apple Developer ID, so the first time you'll need to **right-click the `.pkg`
+  → Open** (or approve it under System Settings → Privacy & Security). It
+  installs to `~/Library/Application Support/obs-studio/plugins/`.
+- **Windows** — run the installer (or unzip the archive into your OBS plugins
+  folder).
+- **Linux** — install the `.deb`, or copy the plugin into your OBS plugins
+  directory.
 
-## macOS quick start (build + deploy for testing)
+Then fully quit and reopen OBS. You'll find a new **Active Source Volume** dock
+under the **Docks** menu.
 
-**Prerequisites**
-- **Xcode** (full app from the App Store, not just Command Line Tools — the
-  build uses the Xcode generator). After installing:
-  ```bash
-  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-  sudo xcodebuild -license accept
-  ```
-- **CMake 3.28+** and **Ninja**:
-  ```bash
-  brew install cmake ninja
-  ```
-  (No need to install Qt or OBS — the build downloads matching prebuilt OBS
-  libs and Qt6 automatically, which avoids the Homebrew-Qt version-mismatch
-  crash.)
+## Set up your hotkeys
 
-**Build** (from the repo root)
-```bash
-cmake --preset macos
-cmake --build --preset macos
-```
-This produces a Universal (arm64 + x86_64) bundle at:
-```
-build_macos/RelWithDebInfo/active-source-volume.plugin
-```
+1. In OBS, go to **Settings → Hotkeys** and find:
+   - **Browser Volume: +**
+   - **Browser Volume: -**
+   - **Browser Volume: Toggle Mute**
+2. Assign a keyboard shortcut to each.
+3. In the **Stream Deck** app, add a **System → Hotkey** action to a button and
+   record the same shortcut.
 
-> Faster arm64-only build on your M2 (optional): add
-> `-DCMAKE_OSX_ARCHITECTURES=arm64` to the first command.
+Now those buttons control your browser source's volume live.
 
-**Install** (copy the bundle into your user plugin folder)
-```bash
-mkdir -p ~/Library/Application\ Support/obs-studio/plugins
-cp -R build_macos/RelWithDebInfo/active-source-volume.plugin \
-   ~/Library/Application\ Support/obs-studio/plugins/
-```
-Restart OBS.
+## The dock
 
-> Alternative: `cmake --install build_macos --config RelWithDebInfo` installs to
-> the same folder (it also runs the packaging step; the manual copy above is the
-> simplest path for testing).
+Open **Docks → Active Source Volume**. It shows what's being controlled and its
+current level, and has these settings (all saved automatically):
 
-**Troubleshooting — `ld: framework 'AGL' not found`:** newer macOS SDKs
-(macOS 15 / 26) removed the legacy AGL framework that the pinned libobs still
-lists as a link dependency. This repo's `CMakeLists.txt` already strips AGL from
-the inherited link interface, so a fresh build is fine. (The plugin never uses
-AGL.)
+- **Controlled source** — choose **Auto** (follow the top-most browser source on
+  the live scene) or pick a specific browser source to control at all times.
+  Use this if your alerts browser sometimes sits on top and you want to be sure
+  only your main browser is affected.
+- **DCA mode** — when enabled, the hotkeys trim **every** browser source at once
+  (each relative to its own level) instead of just one.
+- **Hotkey step** — how many dB each press changes the volume (default 5 dB).
 
-**Confirm it loaded** — OBS → **Help → Log Files → View Current Log**, look for:
-```
-[active-source-volume] Loading version 1.0.0
-```
-Then the dock is under **Docks → Active Source Volume** and the hotkeys are in
-**Settings → Hotkeys**.
+## Important: turn on "Control audio via OBS"
 
-**Troubleshooting — `set_target_properties called with incorrect number of
-arguments` at configure:** this is the upstream template leaving the build
-number empty on a fresh local (non-CI) build. This repo already patches
-`cmake/common/buildnumber.cmake` to default it to `1`. If you're on an older
-copy, either re-download this repo or just pass the number explicitly:
-```bash
-cmake --preset macos -DPLUGIN_BUILD_NUMBER=1
-cmake --build --preset macos
-```
+For the volume hotkeys to actually affect what viewers hear, each browser source
+must have OBS handling its audio:
 
-**Gatekeeper note:** the bundle is ad-hoc signed (no Apple Developer account
-needed). If macOS ever quarantines it, clear the flag:
-```bash
-xattr -dr com.apple.quarantine \
-  ~/Library/Application\ Support/obs-studio/plugins/active-source-volume.plugin
-```
+1. Right-click the browser source → **Properties**.
+2. Enable **Control audio via OBS** (near the bottom).
 
----
+Without this, the browser's audio bypasses OBS's volume control and the hotkeys
+won't change anything audible.
 
-## Other platforms
+## Advanced: control via obs-websocket
 
-Same pattern, different preset:
-```bash
-# Windows (PowerShell, needs VS 2022 + CMake)
-cmake --preset windows-x64
-cmake --build --preset windows-x64
+If you use Bitfocus Companion or another obs-websocket client, this plugin
+registers a vendor named `active-source-volume` with these requests:
 
-# Linux (needs OBS + Qt6 dev packages)
-cmake --preset ubuntu-x86_64
-cmake --build --preset ubuntu-x86_64
-```
-
-CI workflows for all three ship in `.github/workflows/` (inherited from the
-template) if you want automated signed builds later.
-
----
-
-## How it works
-
-```
-program scene change ─▶ SceneTracker ─▶ finds the active browser source ─▶ ActiveBrowserController
-   (transition start)                                                          │
-                          ┌─────────────────────────────────────────────────────┤
-                          ▼                                                       ▼
-               OBS hotkeys (+/- dB, mute)                        obs-websocket vendor requests
-               → Stream Deck "Hotkey" action                     → Companion dial (absolute + feedback)
-```
-
-**Which browser is "active":** the top-most **visible** source of type
-`browser_source` in the live scene (groups are searched; nested scenes are not).
-
-**dB control:** hotkeys nudge volume by a fixed dB step (default ±5 dB).
-
-### Transition safety (no jump / no drop)
-
-OBS applies a transition's audio crossfade as a multiplier **on top of** each
-source's base volume — it never rewrites the source volume itself. So the plugin
-(re)resolves the active browser at **transition start** and, with **carry-level**
-on (default), writes the level then, so the incoming browser fades in already at
-the right level. It never writes volume at transition-stop, which is what would
-otherwise cause the "loud during the wipe, then drops when it lands" artifact.
-
-**Carry-level** (toggle in the dock): on = the level follows you across scenes as
-one continuous channel. off = each browser keeps its own level (still
-artifact-free).
-
-## Usage
-
-1. **Bind hotkeys** — OBS → Settings → Hotkeys: *Active Browser: Volume +*,
-   *Volume -*, *Toggle Mute*. Point a Stream Deck **System → Hotkey** action at
-   each keystroke.
-2. **Dock** — OBS → Docks → Active Source Volume shows the browser being
-   controlled and its live level, plus the dB step and carry-level toggle.
-
-### Dial via obs-websocket
-
-Vendor `active-source-volume`:
-
-| Request | Params | Response |
+| Request | Parameters | Returns |
 |---|---|---|
-| `GetActiveBrowser` | — | `sourceName, db, muted, hasActiveBrowser` |
-| `NudgeVolume` | `deltaDb` | current state |
-| `SetVolume` | `db` | current state |
-| `SetMute` | `muted` | current state |
-| `ToggleMute` | — | current state |
+| `NudgeVolume` | `deltaDb` | the controlled source's `sourceName, db, muted` |
+| `ToggleMute` | — | the controlled source's state |
+| `GetControlled` | — | the controlled source's state |
+| `NudgeAll` | `deltaDb` | `count` of browser sources trimmed |
+| `ToggleMuteAll` | — | `count` |
+| `GetBrowsers` | — | `count` and a list of every browser source |
 
-Emits `ActiveBrowserChanged { sourceName, db }` on every switch.
+## Building from source
 
-## Verifying the three behaviours
+This plugin uses the standard
+[obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) build
+system. With CMake 3.28+ and the platform toolchain installed:
 
-1. **Auto-select** — open the dock, switch scenes; "Active browser" flips to the
-   live scene's browser immediately.
-2. **Transition-safe** — set a slow (1 s) fade, switch between two scenes that
-   each have a browser; the incoming audio should fade in at the intended level
-   with no jump during the wipe and no drop after.
-3. **±dB hotkeys** — press +/- and watch the dock "Level" move by the step.
-
-## Important runtime setting
-
-Enable **"Control audio via OBS"** in each browser source's Properties, or its
-audio isn't routed through the source-volume fader and the hotkeys won't be
-audible.
-
-## Config file
-
-`~/Library/Application Support/obs-studio/plugins/active-source-volume/config.json`
-```json
-{ "nudge_step_db": 5.0, "carry_level": true }
+```bash
+cmake --preset macos        # or: windows-x64 / ubuntu-x86_64
+cmake --build --preset macos
 ```
 
-## Notes / limitations
-
-- Detects source type `browser_source`; top-most visible wins if a scene has
-  several.
-- "Active" = program (live) output. For Studio Mode preview instead, swap
-  `obs_frontend_get_current_scene()` for `obs_frontend_get_current_preview_scene()`
-  in `src/scene-tracker.cpp`.
-- The `author`, `website`, `email`, and macOS `bundleId` in `buildspec.json` are
-  placeholders — edit before publishing.
+The build downloads matching OBS and Qt dependencies automatically. On macOS the
+result is `build_macos/RelWithDebInfo/active-source-volume.plugin`; copy it into
+`~/Library/Application Support/obs-studio/plugins/`.
 
 ## License
 
-GPL-2.0-or-later (matches libobs). See `LICENSE`.
+GPL-2.0-or-later. See [`LICENSE`](LICENSE).

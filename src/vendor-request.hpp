@@ -4,25 +4,26 @@ SPDX-License-Identifier: GPL-2.0-or-later
 */
 #pragma once
 
-class ActiveBrowserController;
+class ActiveBrowser;
 
 /*
- * obs-websocket vendor requests for dial / absolute control of the active
- * browser (vendor name: "active-source-volume"):
+ * obs-websocket vendor requests (vendor name: "active-source-volume"):
  *
- *   GetActiveBrowser  -> { sourceName, db, muted, hasActiveBrowser }
- *   NudgeVolume  { deltaDb }  -> state
- *   SetVolume    { db }       -> state
- *   SetMute      { muted }    -> state
- *   ToggleMute                -> state
+ *   Selected source:
+ *     NudgeVolume  { deltaDb }  -> { sourceName, db, muted, hasSource }
+ *     ToggleMute                -> { sourceName, db, muted, hasSource }
+ *     GetControlled             -> { sourceName, db, muted, hasSource }
+ *   All browser sources (group):
+ *     NudgeAll     { deltaDb }  -> { count }
+ *     ToggleMuteAll             -> { count }
+ *     GetBrowsers               -> { count, browsers: [{ name, db, muted }] }
  *
- * Emitted event:  ActiveBrowserChanged { sourceName, db }
- *
+ * Emitted event: ControlledBrowserChanged { sourceName, db }
  * Registration MUST happen from obs_module_post_load().
  */
 namespace VendorModule {
 
-void register_vendor(ActiveBrowserController *ctl);
-void emit_active_changed(const char *source_name, float db);
+void register_vendor(ActiveBrowser *ctl);
+void emit_changed(const char *source_name, float db);
 
 } // namespace VendorModule
