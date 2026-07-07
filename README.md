@@ -20,6 +20,10 @@ source is currently at, so each source keeps its own level.
 - Adjustable step size (default ±5 dB).
 - Works over **obs-websocket** too, for control surfaces like Bitfocus Companion.
 
+
+https://github.com/user-attachments/assets/c7a4b100-77ad-4fe4-a29a-ab9a82d6334f
+
+
 ## Requirements
 
 - **OBS Studio 31.0 or newer** (macOS, Windows, or Linux).
