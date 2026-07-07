@@ -90,8 +90,8 @@ void ActiveBrowserController::set_active_source(obs_source_t *source)
 	}
 
 	if (changed) {
-		plog(LOG_INFO, "Active browser: %s (%.1f dB)",
-		     new_name.empty() ? "(none)" : new_name.c_str(), report_db);
+		plog(LOG_INFO, "Active browser: %s (%.1f dB)", new_name.empty() ? "(none)" : new_name.c_str(),
+		     report_db);
 		if (on_change_)
 			on_change_(new_name, report_db);
 	}

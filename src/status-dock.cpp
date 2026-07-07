@@ -17,9 +17,11 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #include <QTimer>
 #include <QVBoxLayout>
 
-StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowserController &ctl,
-		       QWidget *parent)
-	: QWidget(parent), cfg_(cfg), tracker_(tracker), ctl_(ctl)
+StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowserController &ctl, QWidget *parent)
+	: QWidget(parent),
+	  cfg_(cfg),
+	  tracker_(tracker),
+	  ctl_(ctl)
 {
 	setObjectName("activeSourceVolumeDock");
 

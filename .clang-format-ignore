@@ -1,0 +1,2 @@
+# Vendored upstream header from obs-websocket; keep byte-for-byte as upstream.
+deps/obs-websocket-api.h

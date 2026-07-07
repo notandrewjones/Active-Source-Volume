@@ -44,8 +44,7 @@ void PluginConfig::load()
 	carry_level_ = obs_data_get_bool(data, "carry_level");
 
 	obs_data_release(data);
-	plog(LOG_INFO, "Loaded config: step=%.1f dB, carry_level=%s", nudge_step_db_,
-	     carry_level_ ? "true" : "false");
+	plog(LOG_INFO, "Loaded config: step=%.1f dB, carry_level=%s", nudge_step_db_, carry_level_ ? "true" : "false");
 }
 
 void PluginConfig::save() const

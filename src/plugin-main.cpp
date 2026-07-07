@@ -82,20 +82,18 @@ bool obs_module_load(void)
 
 	g_ctl = new ActiveBrowserController();
 	g_ctl->init(g_config->carry_level());
-	g_ctl->set_on_change([](const std::string &name, float db) {
-		VendorModule::emit_active_changed(name.c_str(), db);
-	});
+	g_ctl->set_on_change(
+		[](const std::string &name, float db) { VendorModule::emit_active_changed(name.c_str(), db); });
 
 	g_tracker = new SceneTracker(*g_ctl);
 
 	// Frontend hotkeys are automatically saved/restored by OBS.
-	g_hk_up = obs_hotkey_register_frontend("active_browser.vol_up",
-					       "Active Browser: Volume +", hotkey_vol_up, nullptr);
-	g_hk_down = obs_hotkey_register_frontend("active_browser.vol_down",
-						"Active Browser: Volume -", hotkey_vol_down, nullptr);
-	g_hk_mute = obs_hotkey_register_frontend("active_browser.mute_toggle",
-						 "Active Browser: Toggle Mute", hotkey_mute_toggle,
+	g_hk_up = obs_hotkey_register_frontend("active_browser.vol_up", "Active Browser: Volume +", hotkey_vol_up,
+					       nullptr);
+	g_hk_down = obs_hotkey_register_frontend("active_browser.vol_down", "Active Browser: Volume -", hotkey_vol_down,
 						 nullptr);
+	g_hk_mute = obs_hotkey_register_frontend("active_browser.mute_toggle", "Active Browser: Toggle Mute",
+						 hotkey_mute_toggle, nullptr);
 
 	obs_frontend_add_event_callback(on_frontend_event, nullptr);
 

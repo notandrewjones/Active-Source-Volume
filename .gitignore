@@ -9,6 +9,7 @@
 !/deps
 !/src
 !.clang-format
+!.clang-format-ignore
 !.gersemirc
 !.gitignore
 !buildspec.json

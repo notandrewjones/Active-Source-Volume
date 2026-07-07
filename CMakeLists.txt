@@ -36,9 +36,14 @@ if(ENABLE_QT)
 endif()
 
 # --- Workaround: strip the legacy AGL framework from the OBS imported targets'
-# link interface (AGL was removed on macOS 15 / 26 SDKs). The plugin never uses
-# AGL. We enumerate ALL imported targets (skipping aliases) so we catch AGL
-# wherever it lives -- e.g. on the real `libobs` target behind `OBS::libobs`.
+# link interface. Newer macOS SDKs (macOS 15 / 26 "Tahoe") removed AGL, but the
+# pinned libobs still lists it as a link dependency, which propagates onto this
+# plugin's link line and fails with "ld: framework 'AGL' not found". This plugin
+# does not use AGL, so removing it is safe.
+#
+# We enumerate ALL imported targets (skipping aliases, which cannot be modified)
+# so we catch AGL wherever it actually lives -- e.g. on the real `libobs` target
+# behind the `OBS::libobs` alias -- and log where it was found.
 if(APPLE)
   get_property(_imported_targets DIRECTORY PROPERTY IMPORTED_TARGETS)
   foreach(_t IN LISTS _imported_targets)
@@ -47,13 +52,15 @@ if(APPLE)
       continue()
     endif()
     foreach(
-      _prop IN
-      ITEMS INTERFACE_LINK_LIBRARIES
-            INTERFACE_LINK_LIBRARIES_RELEASE
-            INTERFACE_LINK_LIBRARIES_RELWITHDEBINFO
-            INTERFACE_LINK_LIBRARIES_DEBUG
-            INTERFACE_LINK_LIBRARIES_MINSIZEREL
-            INTERFACE_LINK_OPTIONS
+      _prop
+      IN
+      ITEMS
+        INTERFACE_LINK_LIBRARIES
+        INTERFACE_LINK_LIBRARIES_RELEASE
+        INTERFACE_LINK_LIBRARIES_RELWITHDEBINFO
+        INTERFACE_LINK_LIBRARIES_DEBUG
+        INTERFACE_LINK_LIBRARIES_MINSIZEREL
+        INTERFACE_LINK_OPTIONS
     )
       get_target_property(_vals ${_t} ${_prop})
       if(_vals)

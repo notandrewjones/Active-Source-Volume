@@ -68,8 +68,8 @@ public:
 
 private:
 	obs_source_t *get_strong_locked() const;
-	static float read_db(obs_source_t *src);            // floored, never -inf
-	static void apply_db(obs_source_t *src, float db);  // writes base volume
+	static float read_db(obs_source_t *src);           // floored, never -inf
+	static void apply_db(obs_source_t *src, float db); // writes base volume
 
 	mutable std::mutex mutex_;
 	obs_weak_source_t *weak_ = nullptr;

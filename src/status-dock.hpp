@@ -27,8 +27,7 @@ class StatusDock : public QWidget {
 	Q_OBJECT
 
 public:
-	StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowserController &ctl,
-		   QWidget *parent = nullptr);
+	StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowserController &ctl, QWidget *parent = nullptr);
 
 private slots:
 	void refresh();

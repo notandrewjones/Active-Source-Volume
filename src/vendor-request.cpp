@@ -78,8 +78,7 @@ void register_vendor(ActiveBrowserController *ctl)
 
 	g_vendor = obs_websocket_register_vendor(VENDOR_NAME);
 	if (!g_vendor) {
-		plog(LOG_INFO,
-		     "obs-websocket not present; dial/absolute requests unavailable (hotkeys still work)");
+		plog(LOG_INFO, "obs-websocket not present; dial/absolute requests unavailable (hotkeys still work)");
 		return;
 	}
 
