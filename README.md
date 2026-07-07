@@ -230,3 +230,4 @@ audible.
 ## License
 
 GPL-2.0-or-later (matches libobs). See `LICENSE`.
+# Active-Source-Volume
