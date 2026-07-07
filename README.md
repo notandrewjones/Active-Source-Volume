@@ -58,10 +58,13 @@ Now those buttons control your browser source's volume live.
 Open **Docks → Active Source Volume**. It shows what's being controlled and its
 current level, and has these settings (all saved automatically):
 
-- **Controlled source** — choose **Auto** (follow the top-most browser source on
-  the live scene) or pick a specific browser source to control at all times.
-  Use this if your alerts browser sometimes sits on top and you want to be sure
-  only your main browser is affected.
+- **Controlled browser sources** — a checklist of your browser sources. Check
+  the one(s) you want to control, and the plugin drives whichever *checked*
+  source is on the live scene. This is handy when your content browser sits
+  below other sources (so "auto" would grab the wrong one), or when you want to
+  choose a different browser per scene. Leave everything unchecked to auto-pick
+  the top-most browser on each scene. **Clear (auto)** resets to auto, and
+  **Refresh list** rescans after you add or rename sources.
 - **DCA mode** — when enabled, the hotkeys trim **every** browser source at once
   (each relative to its own level) instead of just one.
 - **Hotkey step** — how many dB each press changes the volume (default 5 dB).

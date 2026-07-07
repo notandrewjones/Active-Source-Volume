@@ -10,7 +10,9 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #include <obs.h>
 
 #include <cstring>
+#include <set>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -22,15 +24,11 @@ bool is_browser(obs_source_t *src)
 	return id && strcmp(id, "browser_source") == 0;
 }
 
-// Finds the top-most visible browser source in a scene. Descends into groups
-// (same scene) but deliberately not into nested scenes.
-struct ResolveCtx {
-	obs_source_t *found; // borrowed
-};
-
+// Collects the names of visible browser sources in a scene, in z-order
+// (bottom-to-top). Descends into groups (same scene) but not nested scenes.
 bool enum_item_cb(obs_scene_t *, obs_sceneitem_t *item, void *param)
 {
-	auto *ctx = static_cast<ResolveCtx *>(param);
+	auto *names = static_cast<std::vector<std::string> *>(param);
 
 	if (!obs_sceneitem_visible(item))
 		return true;
@@ -41,9 +39,11 @@ bool enum_item_cb(obs_scene_t *, obs_sceneitem_t *item, void *param)
 	}
 
 	obs_source_t *src = obs_sceneitem_get_source(item);
-	if (is_browser(src))
-		ctx->found = src; // bottom-to-top enumeration -> last wins == top-most
-
+	if (is_browser(src)) {
+		const char *n = obs_source_get_name(src);
+		if (n && *n)
+			names->emplace_back(n);
+	}
 	return true;
 }
 
@@ -67,33 +67,43 @@ void SceneTracker::handle_event(enum obs_frontend_event event)
 
 void SceneTracker::resolve_current()
 {
-	// 1. Explicit override wins, regardless of scene.
-	std::string override_name = cfg_.override_source();
-	if (!override_name.empty()) {
-		obs_source_t *src = obs_get_source_by_name(override_name.c_str());
-		if (src && is_browser(src)) {
-			ctl_.set_source(src);
-			obs_source_release(src);
-			return;
-		}
-		if (src)
-			obs_source_release(src);
-		plog(LOG_WARNING, "Override browser \"%s\" not found; using top-most in live scene",
-		     override_name.c_str());
-	}
-
-	// 2. Auto: top-most visible browser in the live program scene.
 	obs_source_t *scene_source = obs_frontend_get_current_scene();
 	if (!scene_source) {
 		ctl_.set_source(nullptr);
 		return;
 	}
 
+	// Visible browser sources on the live scene, bottom-to-top.
+	std::vector<std::string> visible;
 	obs_scene_t *scene = obs_scene_from_source(scene_source);
-	ResolveCtx ctx{nullptr};
 	if (scene)
-		obs_scene_enum_items(scene, enum_item_cb, &ctx);
+		obs_scene_enum_items(scene, enum_item_cb, &visible);
 
-	ctl_.set_source(ctx.found);
+	std::set<std::string> selected = cfg_.selected_sources();
+
+	std::string chosen;
+	if (selected.empty()) {
+		// Auto: top-most visible browser.
+		if (!visible.empty())
+			chosen = visible.back();
+	} else {
+		// Top-most visible browser that the user checked.
+		for (auto it = visible.rbegin(); it != visible.rend(); ++it) {
+			if (selected.count(*it)) {
+				chosen = *it;
+				break;
+			}
+		}
+	}
+
+	if (chosen.empty()) {
+		ctl_.set_source(nullptr);
+	} else {
+		obs_source_t *src = obs_get_source_by_name(chosen.c_str());
+		ctl_.set_source(src);
+		if (src)
+			obs_source_release(src);
+	}
+
 	obs_source_release(scene_source);
 }

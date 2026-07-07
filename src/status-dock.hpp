@@ -10,16 +10,18 @@ class PluginConfig;
 class SceneTracker;
 class ActiveBrowser;
 class QLabel;
-class QComboBox;
 class QCheckBox;
+class QWidget;
+class QVBoxLayout;
 class QDoubleSpinBox;
+class QScrollArea;
+class QPushButton;
 class QTimer;
 
 /*
  * StatusDock shows what's being controlled and its live level, and exposes the
- * settings: the dB step, the controlled-source picker (Auto or a pinned
- * override), and the optional DCA-mode toggle (control every browser source at
- * once). It reads state directly from ActiveBrowser / browser_dca.
+ * settings: the dB step, a checklist of browser sources to control (empty =
+ * auto top-most on the live scene), and the optional DCA-mode toggle.
  */
 class StatusDock : public QWidget {
 	Q_OBJECT
@@ -30,11 +32,11 @@ public:
 private slots:
 	void refresh();
 	void onStepChanged(double value);
-	void onOverrideChanged(const QString &text);
 	void onDcaToggled(bool checked);
+	void repopulateSelection();
+	void clearSelection();
 
 private:
-	void repopulateOverride();
 	void updateEnabledState();
 
 	PluginConfig &cfg_;
@@ -44,9 +46,12 @@ private:
 	QLabel *headerLabel_ = nullptr;
 	QLabel *bodyLabel_ = nullptr;
 	QCheckBox *dcaCheck_ = nullptr;
-	QComboBox *overrideCombo_ = nullptr;
-	QLabel *overrideLabel_ = nullptr;
+	QLabel *selectionLabel_ = nullptr;
+	QScrollArea *selectionScroll_ = nullptr;
+	QWidget *selectionBody_ = nullptr;
+	QVBoxLayout *selectionLayout_ = nullptr;
+	QPushButton *refreshBtn_ = nullptr;
+	QPushButton *clearBtn_ = nullptr;
 	QDoubleSpinBox *stepSpin_ = nullptr;
 	QTimer *timer_ = nullptr;
-	bool populating_ = false;
 };

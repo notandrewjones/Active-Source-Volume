@@ -11,12 +11,12 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #include <obs.h>
 
 #include <QCheckBox>
-#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFont>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLayoutItem>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QTimer>
@@ -26,8 +26,6 @@ SPDX-License-Identifier: GPL-2.0-or-later
 #include <cstring>
 #include <string>
 #include <vector>
-
-static const char *kAutoLabel = "(Auto: top-most browser in live scene)";
 
 namespace {
 
@@ -71,8 +69,8 @@ StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &
 	outer->setContentsMargins(8, 8, 8, 8);
 	outer->setSpacing(8);
 
-	auto *intro = new QLabel(tr("By default the hotkeys shift ONE browser source (so alert / donation / chat "
-				    "browsers are left alone). Enable DCA mode to shift every browser source at once."),
+	auto *intro = new QLabel(tr("The hotkeys shift ONE browser source at a time (so alert / donation / chat "
+				    "browsers are left alone). Or enable DCA mode to shift every browser at once."),
 				 this);
 	intro->setWordWrap(true);
 	outer->addWidget(intro);
@@ -82,13 +80,35 @@ StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &
 	connect(dcaCheck_, &QCheckBox::toggled, this, &StatusDock::onDcaToggled);
 	outer->addWidget(dcaCheck_);
 
-	auto *ovRow = new QHBoxLayout();
-	overrideLabel_ = new QLabel(tr("Controlled source:"), this);
-	ovRow->addWidget(overrideLabel_);
-	overrideCombo_ = new QComboBox(this);
-	connect(overrideCombo_, &QComboBox::currentTextChanged, this, &StatusDock::onOverrideChanged);
-	ovRow->addWidget(overrideCombo_, 1);
-	outer->addLayout(ovRow);
+	auto *sep1 = new QFrame(this);
+	sep1->setFrameShape(QFrame::HLine);
+	sep1->setFrameShadow(QFrame::Sunken);
+	outer->addWidget(sep1);
+
+	selectionLabel_ = new QLabel(tr("Check the browser source(s) to control. They're controlled only while on the "
+					"live scene. Check none to auto-pick the top-most browser on each scene."),
+				     this);
+	selectionLabel_->setWordWrap(true);
+	outer->addWidget(selectionLabel_);
+
+	selectionScroll_ = new QScrollArea(this);
+	selectionScroll_->setWidgetResizable(true);
+	selectionBody_ = new QWidget(selectionScroll_);
+	selectionLayout_ = new QVBoxLayout(selectionBody_);
+	selectionLayout_->setContentsMargins(4, 4, 4, 4);
+	selectionLayout_->setSpacing(2);
+	selectionScroll_->setWidget(selectionBody_);
+	outer->addWidget(selectionScroll_, 1);
+
+	auto *btnRow = new QHBoxLayout();
+	refreshBtn_ = new QPushButton(tr("Refresh list"), this);
+	connect(refreshBtn_, &QPushButton::clicked, this, &StatusDock::repopulateSelection);
+	btnRow->addWidget(refreshBtn_);
+	clearBtn_ = new QPushButton(tr("Clear (auto)"), this);
+	connect(clearBtn_, &QPushButton::clicked, this, &StatusDock::clearSelection);
+	btnRow->addWidget(clearBtn_);
+	btnRow->addStretch();
+	outer->addLayout(btnRow);
 
 	auto *stepRow = new QHBoxLayout();
 	stepRow->addWidget(new QLabel(tr("Hotkey step:"), this));
@@ -103,14 +123,10 @@ StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &
 	stepRow->addStretch();
 	outer->addLayout(stepRow);
 
-	auto *refreshBtn = new QPushButton(tr("Refresh source list"), this);
-	connect(refreshBtn, &QPushButton::clicked, this, &StatusDock::repopulateOverride);
-	outer->addWidget(refreshBtn);
-
-	auto *sep = new QFrame(this);
-	sep->setFrameShape(QFrame::HLine);
-	sep->setFrameShadow(QFrame::Sunken);
-	outer->addWidget(sep);
+	auto *sep2 = new QFrame(this);
+	sep2->setFrameShape(QFrame::HLine);
+	sep2->setFrameShadow(QFrame::Sunken);
+	outer->addWidget(sep2);
 
 	headerLabel_ = new QLabel(this);
 	QFont bold = headerLabel_->font();
@@ -119,18 +135,15 @@ StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &
 	headerLabel_->setWordWrap(true);
 	outer->addWidget(headerLabel_);
 
-	auto *scroll = new QScrollArea(this);
-	scroll->setWidgetResizable(true);
-	bodyLabel_ = new QLabel(scroll);
+	bodyLabel_ = new QLabel(this);
+	bodyLabel_->setWordWrap(true);
 	bodyLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-	bodyLabel_->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 	QFont mono("Menlo");
 	mono.setStyleHint(QFont::Monospace);
 	bodyLabel_->setFont(mono);
-	scroll->setWidget(bodyLabel_);
-	outer->addWidget(scroll, 1);
+	outer->addWidget(bodyLabel_);
 
-	repopulateOverride();
+	repopulateSelection();
 	updateEnabledState();
 
 	timer_ = new QTimer(this);
@@ -144,45 +157,40 @@ StatusDock::StatusDock(PluginConfig &cfg, SceneTracker &tracker, ActiveBrowser &
 void StatusDock::updateEnabledState()
 {
 	bool dca = dcaCheck_->isChecked();
-	overrideCombo_->setEnabled(!dca);
-	overrideLabel_->setEnabled(!dca);
+	selectionLabel_->setEnabled(!dca);
+	selectionScroll_->setEnabled(!dca);
+	refreshBtn_->setEnabled(!dca);
+	clearBtn_->setEnabled(!dca);
 }
 
-void StatusDock::repopulateOverride()
+void StatusDock::repopulateSelection()
 {
-	populating_ = true;
-	overrideCombo_->clear();
-	overrideCombo_->addItem(QString::fromUtf8(kAutoLabel));
-	for (const auto &n : browser_source_names())
-		overrideCombo_->addItem(QString::fromStdString(n));
-
-	std::string ov = cfg_.override_source();
-	if (!ov.empty()) {
-		int idx = overrideCombo_->findText(QString::fromStdString(ov));
-		if (idx >= 0) {
-			overrideCombo_->setCurrentIndex(idx);
-		} else {
-			overrideCombo_->addItem(QString::fromStdString(ov) + tr(" (missing)"));
-			overrideCombo_->setCurrentIndex(overrideCombo_->count() - 1);
-		}
-	} else {
-		overrideCombo_->setCurrentIndex(0);
+	QLayoutItem *item;
+	while ((item = selectionLayout_->takeAt(0)) != nullptr) {
+		if (item->widget())
+			item->widget()->deleteLater();
+		delete item;
 	}
-	populating_ = false;
+
+	for (const auto &name : browser_source_names()) {
+		auto *cb = new QCheckBox(QString::fromStdString(name), selectionBody_);
+		cb->setChecked(cfg_.is_selected(name));
+		// Connect AFTER setChecked so the initial state doesn't fire the slot.
+		connect(cb, &QCheckBox::toggled, this, [this, name](bool on) {
+			cfg_.set_selected(name, on);
+			cfg_.save();
+			tracker_.resolve_current();
+		});
+		selectionLayout_->addWidget(cb);
+	}
+	selectionLayout_->addStretch();
 }
 
-void StatusDock::onOverrideChanged(const QString &text)
+void StatusDock::clearSelection()
 {
-	if (populating_)
-		return;
-	if (text == QString::fromUtf8(kAutoLabel)) {
-		cfg_.set_override_source("");
-	} else {
-		QString clean = text;
-		clean.remove(tr(" (missing)"));
-		cfg_.set_override_source(clean.toStdString());
-	}
+	cfg_.clear_selection();
 	cfg_.save();
+	repopulateSelection();
 	tracker_.resolve_current();
 }
 
@@ -198,7 +206,7 @@ void StatusDock::refresh()
 {
 	if (dcaCheck_->isChecked()) {
 		auto entries = browser_dca::snapshot();
-		headerLabel_->setText(tr("DCA mode — %1 browser source(s):").arg(entries.size()));
+		headerLabel_->setText(tr("DCA mode - %1 browser source(s):").arg(entries.size()));
 		if (entries.empty()) {
 			bodyLabel_->setText(tr("(no browser sources found)"));
 			return;
@@ -218,7 +226,9 @@ void StatusDock::refresh()
 
 	std::string name = ctl_.name();
 	if (name.empty()) {
-		headerLabel_->setText(tr("Controlling: — (no browser source selected)"));
+		headerLabel_->setText(cfg_.has_selection()
+					      ? tr("Controlling: - (no checked browser on the live scene)")
+					      : tr("Controlling: - (no browser source on the live scene)"));
 		bodyLabel_->setText(QString());
 		return;
 	}
@@ -229,7 +239,7 @@ void StatusDock::refresh()
 	bool haveDb = ctl_.get_db(db);
 	ctl_.get_mute(muted);
 
-	QString level = haveDb ? tr("Level: %1").arg(db_text(db)) : tr("Level: —");
+	QString level = haveDb ? tr("Level: %1").arg(db_text(db)) : tr("Level: -");
 	if (muted)
 		level += tr("   (muted)");
 	bodyLabel_->setText(level);

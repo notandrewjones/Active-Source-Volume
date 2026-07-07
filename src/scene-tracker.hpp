@@ -11,15 +11,17 @@ class PluginConfig;
 
 /*
  * SceneTracker decides WHICH single browser source is controlled and hands it
- * to ActiveBrowser:
+ * to ActiveBrowser, re-resolving on scene changes:
  *
- *   1. If the user set an override (a specific browser source name), that one is
- *      always controlled, regardless of scene.
- *   2. Otherwise, the top-most VISIBLE browser source in the live program scene
- *      (groups are searched; nested scenes are not).
+ *   - If the user has checked one or more browser sources, the controlled source
+ *     is the top-most CHECKED, visible browser on the live scene. (If none of
+ *     the checked sources are on the live scene, nothing is controlled.) This
+ *     lets you hand-pick your content browser per scene even when it's buried
+ *     low in the source list.
+ *   - If nothing is checked, it falls back to the top-most visible browser on
+ *     the live scene (auto).
  *
- * It re-resolves on scene changes so, in auto mode, control follows whatever
- * browser is on screen. Selecting a source never changes any volume.
+ * Groups are searched; nested scenes are not. Selecting never changes volume.
  */
 class SceneTracker {
 public:
